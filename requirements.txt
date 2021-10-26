@@ -1,1 +1,3 @@
 spacy
+pycld3
+tabulate

@@ -4,7 +4,9 @@
 '''Clean the DSI data to only contain sentences (and not headers, links, etc) of the correct language'''
 
 import argparse
+import cld3
 from spacy.lang.en import English
+from config import punctuation, replacements
 
 
 def create_arg_parser():
@@ -15,8 +17,18 @@ def create_arg_parser():
 						help="Minimum sentence length to be included")
 	parser.add_argument("-o", "--output_file", default='', type=str,
 						help="Output file with cleaned data. Default: add .clean to -i")
+	parser.add_argument("-l", "--lang", default='en', type=str,
+						help="Iso code of language we are cleaning")					
 	args = parser.parse_args()
 	return args
+
+
+def write_to_file(lst, out_file):
+	'''Write list to file'''
+	with open(out_file, "w") as out_f:
+		for line in lst:
+			out_f.write(line.strip() + '\n')
+	out_f.close()
 
 
 def length_check(line, tokenizer, min_length):
@@ -25,7 +37,8 @@ def length_check(line, tokenizer, min_length):
 
 
 def ends_with_punctuation(line):
-	return line[-1] in ['.', '?', '!', ':', ';']
+	'''Check string ends with something we consider punctuation, see config.py'''
+	return line[-1] in punctuation
 
 
 def filter_doubles_from_list(items):
@@ -33,7 +46,34 @@ def filter_doubles_from_list(items):
 	return list(dict.fromkeys(items))
 
 
-def clean_data(input_file, min_length):
+def normalize(line):
+	'''Normalize a string'''
+	# Resolve multiple spaces
+	line = " ".join(line.split())
+	# Pairs of replacements here, for quotes/dashes
+	# See config.py for pairs of replacements
+	for char, replace_with in replacements:
+		line = line.replace(char, replace_with)
+	return line	
+
+
+def correct_language(line, lang):
+	'''Check if a certain string belongs to the language we specified
+	   Use pycld3: https://github.com/bsolomon1124/pycld3'''
+	res = cld3.get_language(line)
+	return res.language == lang
+
+
+def specific_filter(line):
+	'''Data-specific things we found that we want to filter as well, not based on general principles'''
+	# The data of cybersecurity contains hundreds of these:
+	# No matching events listed under Workshops scheduled for DATE
+	# Just filter them
+	if line.startswith("No matching events listed under Workshops scheduled for"):
+		return True
+	return False
+
+def clean_data(input_file, min_length, lang):
 	'''Clean the DSI data to only contain sentences/texts we want to keep'''
 	# Setup spacy tokenization for later checks
 	nlp = English()
@@ -43,21 +83,32 @@ def clean_data(input_file, min_length):
 	keep_texts = []
 	for idx, line in enumerate(open(input_file, 'r')):
 		line = line.strip()
-		# First do a simple length check, which requires tokenization
+		# First normalize the input: quotes, dashes, etc
+		line = normalize(line)
+		# Do a simple length check, which requires tokenization
 		if not length_check(line, tokenizer, min_length):
 			continue
 		# Sentences should end with punctuation of some sort
 		if not ends_with_punctuation(line):
 			continue	
+		# The sentence should also be in the correct language (e.g. noticed some Russian for English)
+		if not correct_language(line, lang):
+			continue
+		# Data-specific things we found that we want to filter as well
+		if specific_filter(line):
+			continue	
+		# Keep the final line
 		keep_texts.append(line)
-	# We also want to normalize: quotes, dashes, etc
-	# To be added here
 	
-	# Filter double lines from the ones we keep
+	# Filter double lines as well
 	keep_texts = filter_doubles_from_list(keep_texts)
-	print ("{0} of {1} lines remain".format(len(keep_texts), idx+1))	
-		
+	print ("{0} of {1} lines remain for {2}".format(len(keep_texts), idx+1, input_file))	
+	return keep_texts
 
 if __name__ == '__main__':
 	args = create_arg_parser()
-	clean_lines = clean_data(args.input_file, args.min_length)
+	# Clean the data here
+	clean_lines = clean_data(args.input_file, args.min_length, args.lang)
+	# Write them to output file
+	out_file = args.output_file if args.output_file else args.input_file + '.clean'
+	write_to_file(clean_lines, out_file)
