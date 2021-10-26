@@ -2,7 +2,6 @@
 punctuation = ['.', '?', '!', ':', ';']
 replacements = [["‘", "'"], ["’", "'"], ['“', '"'], ['”', '"'], ['`', "'"], ["„", '"'], 
                ["''", '"'], ['–', '-'], ['—', '-']]
-#dsis = ["cybersecurity", "e-health", "e-procurement", "online-dispute-resolution", "safer-internet","ec-europa", "e-justice", "europeana", "open-data-portal"]
-#small_dsis = ["cyber", "health", "e-proc", "odr", "safe", "ec-eur", "e-just", "europ", "open"]
-small_dsis = ["cyber", "health"]
-dsis = ["cybersecurity", "e-procurement"]
+dsis = ["cybersecurity", "e-health", "e-procurement", "online-dispute-resolution", "safer-internet","ec-europa", "e-justice", "europeana", "open-data-portal"]
+small_dsis = ["cyber", "health", "e-proc", "odr", "safe", "ec-eur", "e-just", "europ", "open"]
+
