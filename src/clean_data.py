@@ -5,8 +5,8 @@
 
 import argparse
 import cld3
-from spacy.lang.en import English
 from config import punctuation, replacements
+from utils import write_to_file, setup_spacy_tokenizer
 
 
 def create_arg_parser():
@@ -18,17 +18,9 @@ def create_arg_parser():
 	parser.add_argument("-o", "--output_file", default='', type=str,
 						help="Output file with cleaned data. Default: add .clean to -i")
 	parser.add_argument("-l", "--lang", default='en', type=str,
-						help="Iso code of language we are cleaning")					
+						help="Iso code of language we are cleaning")
 	args = parser.parse_args()
 	return args
-
-
-def write_to_file(lst, out_file):
-	'''Write list to file'''
-	with open(out_file, "w") as out_f:
-		for line in lst:
-			out_f.write(line.strip() + '\n')
-	out_f.close()
 
 
 def length_check(line, tokenizer, min_length):
@@ -54,7 +46,7 @@ def normalize(line):
 	# See config.py for pairs of replacements
 	for char, replace_with in replacements:
 		line = line.replace(char, replace_with)
-	return line	
+	return line
 
 
 def correct_language(line, lang):
@@ -73,12 +65,12 @@ def specific_filter(line):
 		return True
 	return False
 
+
 def clean_data(input_file, min_length, lang):
 	'''Clean the DSI data to only contain sentences/texts we want to keep'''
 	# Setup spacy tokenization for later checks
-	nlp = English()
-	tokenizer = nlp.tokenizer
-	
+	tokenizer = setup_spacy_tokenizer(lang)
+
 	# Now loop over the input sentences/texts and check if we keep them
 	keep_texts = []
 	for idx, line in enumerate(open(input_file, 'r')):
@@ -90,19 +82,19 @@ def clean_data(input_file, min_length, lang):
 			continue
 		# Sentences should end with punctuation of some sort
 		if not ends_with_punctuation(line):
-			continue	
+			continue
 		# The sentence should also be in the correct language (e.g. noticed some Russian for English)
 		if not correct_language(line, lang):
 			continue
 		# Data-specific things we found that we want to filter as well
 		if specific_filter(line):
-			continue	
+			continue
 		# Keep the final line
 		keep_texts.append(line)
-	
+
 	# Filter double lines as well
 	keep_texts = filter_doubles_from_list(keep_texts)
-	print ("{0} of {1} lines remain for {2}".format(len(keep_texts), idx+1, input_file))	
+	print ("{0} of {1} lines remain for {2}".format(len(keep_texts), idx+1, input_file))
 	return keep_texts
 
 if __name__ == '__main__':
