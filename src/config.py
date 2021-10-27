@@ -1,7 +1,7 @@
 # Things we import in the scripts, but might want to change
 punctuation = ['.', '?', '!', ':', ';']
-replacements = [["‘", "'"], ["’", "'"], ['“', '"'], ['”', '"'], ['`', "'"], ["„", '"'], 
+replacements = [["‘", "'"], ["’", "'"], ['“', '"'], ['”', '"'], ['`', "'"], ["„", '"'],
                ["''", '"'], ['–', '-'], ['—', '-']]
-dsis = ["cybersecurity", "e-health", "e-procurement", "online-dispute-resolution", "safer-internet","ec-europa", "e-justice", "europeana", "open-data-portal"]
-small_dsis = ["cyber", "health", "e-proc", "odr", "safe", "ec-eur", "e-just", "europ", "open"]
+dsis = ["cybersecurity", "e-health", "online-dispute-resolution", "safer-internet", "e-justice", "europeana", "open-data-portal"]
+small_dsis = ["cyber", "health", "odr", "safe", "e-just", "europ", "open"]
 
