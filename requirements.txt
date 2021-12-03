@@ -1,3 +1,9 @@
 spacy
 pycld3
 tabulate
+xxhash
+unidecode
+sklearn
+matplotlib
+transformers
+torch
