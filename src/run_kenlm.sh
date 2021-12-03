@@ -25,8 +25,8 @@ ppl_script="src/perplexity_table.py"
 
 # Experimental settings
 ngram="3"
-train_file="train.clean.tok.lower"
-test_file="test.clean.tok.lower"
+train_file="train.clean.tok.lower.dedup"
+test_file="test.clean.tok.lower.dedup"
 lang="en"
 
 # Set dsis we are working with - e-procurement and ec-europa are excluded
