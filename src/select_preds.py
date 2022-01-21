@@ -167,7 +167,7 @@ def select_and_write_predictions(lines, dsis, spec_dsis, sent_file, out_folder, 
             write_to_file(snts, base + '.txt')
             write_to_file(info, base + '.info')
             # For logging purposes
-            print (f"Wrote {len(snts)} to {base}.txt and {base}.info")
+            print (f"Wrote {len(snts)} sentences to {base}.txt and {base}.info")
 
 
 def main():
