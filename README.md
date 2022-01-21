@@ -30,7 +30,7 @@ If you want to preprocess your own set of sentences (in $FILE) exactly the way d
 ./src/preprocess.sh $FILE
 ```
 
-However: if you are only interested in using our trained models, you do not want to do this.
+**However:** if you are only interested in using our trained models, you do not want to do this.
 
 This does all sorts of filtering that you probably do not want, such as removing sentences smaller and larger than a certain length.
 
