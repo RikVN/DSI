@@ -27,7 +27,7 @@ for nme in log models output eval bkp; do
 done
 
 # Training call
-python src/lm_classifier.py --train_file $train_file --dev_file $dev_file -lm $lm_ident -l $limit_train -ds $down_sample $also_other $filter_categories -o ${out_fol}/models/ -str $strategy -bs $batch_size -lr $learning_rate -wd $weight_decay -mgn $max_grad_norm -ne $num_train_epochs -wr $warmup_ratio $adafactor -ls $label_smoothing -of ${out_fol}/output/ -pa $padding $grad_check -eas $eval_accumulation_steps $max_length --dropout $dropout --seed $seed > ${out_fol}/log/train.log 2> ${out_fol}/log/stderr.log
+python src/lm_classifier.py --train_file $train_file --dev_file $dev_file -lm $lm_ident -l $limit_train -ds $down_sample $also_other $filter_categories -o ${out_fol}/models/ -str $strategy -bs $batch_size -lr $learning_rate -wd $weight_decay -mgn $max_grad_norm -ne $num_train_epochs -wr $warmup_ratio $adafactor -ls $label_smoothing -of ${out_fol}/output/ -pa $padding $grad_check -eas $eval_accumulation_steps $max_length --dropout $dropout --seed $seed > ${out_fol}/log/train.log
 
 # Do parsing for specified test files, save eval files
 count=0
@@ -35,7 +35,7 @@ for test_file in $files_to_parse; do
 	echo "Producing output for $test_file"
 	echo "Writing to ${out_fol}/output/${out_prefixes[$count]}"
 	# We save only 1 checkpoint so we can select it like this
-	python src/lm_parse.py -m ${out_fol}/models/ --train_log ${out_fol}/log/train.log --lm_ident $lm_ident --sent_file $test_file -o ${out_fol}/output/${out_prefixes[$count]} -pa $padding > ${out_fol}/eval/${out_prefixes[$count]}.eval 2> ${out_fol}/log/${out_prefixes[$count]}.log
+	python src/lm_parse.py -m ${out_fol}/models/ --train_log ${out_fol}/log/train.log --lm_ident $lm_ident --sent_file $test_file -o ${out_fol}/output/${out_prefixes[$count]} -pa $padding > ${out_fol}/eval/${out_prefixes[$count]}.eval
 	# For Dutch/Spanish we fix the evaluation file macro average (don't count categories with 0 support)
 	python src/fix_clf_report.py -i ${out_fol}/eval/${out_prefixes[$count]}.eval
 	(( count++ )) || true
