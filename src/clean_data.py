@@ -21,6 +21,8 @@ def create_arg_parser():
                         help="Output file with cleaned data. Default: add .clean to -i")
     parser.add_argument("-l", "--lang", default='en', type=str,
                         help="Iso code of language we are cleaning")
+    parser.add_argument("-on", "--only_normalize", action="store_true",
+                        help="Only normalize the input data, no other filtering steps.")
     args = parser.parse_args()
     return args
 
@@ -69,7 +71,7 @@ def specific_filter(line):
     return False
 
 
-def clean_data(input_file, min_length, max_length, lang):
+def clean_data(input_file, min_length, max_length, lang, only_normalize):
     '''Clean the DSI data to only contain sentences/texts we want to keep'''
     # Setup spacy tokenization for later checks
     tokenizer = setup_spacy_tokenizer(lang)
@@ -82,18 +84,20 @@ def clean_data(input_file, min_length, max_length, lang):
         line = line.strip()
         # First normalize the input: quotes, dashes, etc
         line = normalize(line)
-        # Do a simple length check, which requires tokenization
-        if not length_check(line, tokenizer, min_length, max_length):
-            continue
-        # Sentences should end with punctuation of some sort
-        if not ends_with_punctuation(line):
-            continue
-        # The sentence should also be in the correct language (e.g. noticed some Russian for English)
-        if not correct_language(line, lang):
-            continue
-        # Data-specific things we found that we want to filter as well
-        if specific_filter(line):
-            continue
+        # If we only do normalization we are already done
+        if not only_normalize:
+            # Do a simple length check, which requires tokenization
+            if not length_check(line, tokenizer, min_length, max_length):
+                continue
+            # Sentences should end with punctuation of some sort
+            if not ends_with_punctuation(line):
+                continue
+            # The sentence should also be in the correct language (e.g. noticed some Russian for English)
+            if not correct_language(line, lang):
+                continue
+            # Data-specific things we found that we want to filter as well
+            if specific_filter(line):
+                continue
         # Keep the final line
         keep_texts.append(line)
 
@@ -106,7 +110,7 @@ def clean_data(input_file, min_length, max_length, lang):
 if __name__ == '__main__':
     args = create_arg_parser()
     # Clean the data here
-    clean_lines = clean_data(args.input_file, args.min_length, args.max_length, args.lang)
+    clean_lines = clean_data(args.input_file, args.min_length, args.max_length, args.lang, args.only_normalize)
     # Write them to output file, add .clean to input if not specified
     out_file = args.output_file if args.output_file else args.input_file + '.clean'
     write_to_file(clean_lines, out_file)

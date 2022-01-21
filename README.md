@@ -1,11 +1,12 @@
-# DSI
+# DSI classification
 
-Code for the DSI experiments in the MaCoCu project
+Code for the DSI experiments in the MaCoCu project. Corresponding paper will soon be available.
 
-Create a Conda environment for this project:
+First, create a Conda environment for this project:
 
 ```
-conda create -n macocu python=3.7
+conda create -n dsi python=3.7
+conda activate dsi
 ```
 
 And install the requirements:
@@ -14,136 +15,137 @@ And install the requirements:
 pip install -r requirements.txt
 ```
 
-## Data handling
+## Data
 
-Unpack the data files, text is in base64:
-
-```
-for type in clean_sentences clean_text; do for file in */*/${type}.gz ; do filename=${file%.*} ; zcat $file | base64 -d > $filename; done ; done
-```
-
-Meta information is gzipped as usual:
+If you are only interested in doing DSI classification, you can just download the data:
 
 ```
-for type in clean_mime clean_url; do for file in */*/${type}.gz ; do gzip -d $file ; done ; done
+wget "https://www.let.rug.nl/rikvannoord/DSI/v1.zip"
+unzip v1.zip
 ```
 
-## Cleaning and splitting
-
-Make next commands a bit easier and customizable:
+If you want to preprocess your own set of sentences (in $FILE) exactly the way did, do the following:
 
 ```
-export fol="data/dsi_clean"
+./src/preprocess.sh $FILE
 ```
 
-If you want to include a non-DSI category it's best to already include a file called "sentences" in the folder "other" in the same structure. In our case, we used 150k sentences from the Dutch-English paracrawl.
-Clean all the data:
+However: if you are only interested in using our trained models, you do not want to do this.
+
+This does all sorts of filtering that you probably do not want, such as removing sentences smaller and larger than a certain length.
+
+In that case, we still recommend doing the normalization step (as that is what the model expects). Run the following:
 
 ```
-for file in ${fol}/*/en/sentences; do echo $file ; python src/clean_data.py --input_file $file -minl 7 -maxl 50 ;  done
+python src/clean_data.py -i $FILE -o ${FILE}.clean --only_normalize
 ```
 
-Tokenizing and lowercasing:
+## Using a trained model
+
+First, download our pretrained models and put them in a ``models`` folder:
 
 ```
-for file in ${fol}/*/en/sentences.clean; do echo $file ; python src/tokenize_and_lowercase.py -i ${file} -o ${file}.tok.lower -l en ; done
+./src/setup_models.sh
 ```
 
-Run deduplication on the data:
+Our best English model is based on DeBERTa-v3, while the multi-lingual model is based on XLM-R. Note that we evaluated the latter model on Spanish and Dutch, but it will work on all languages in XLM-R.
+
+Then simply run the parsing script by specifying the language, the model and the sentence file, say for English:
 
 ```
-for file in ${fol}/*/en/sentences.clean.tok.lower; do echo $file ; cat $file | python src/neardup_hash.py > ${file}.dedup ; done
+python src/lm_parse.py -l en -m models/en_model/ -s ${FILE}.clean
 ```
 
-Split in train/test sets for LM training:
+And for Spanish or Dutch (or any other language in XLM-R):
 
 ```
-python src/split_data.py --input_folder $fol/ -d 5000 -t 5000 -fa _lm
+python src/lm_parse.py -l es -m models/ml_model/ -s ${FILE}.clean
 ```
 
-But also in train/dev/test for classifier training:
+You can find the final predictions in ``${FILE}.clean.pred``, and the softmax probabilities in ``${FILE}.clean.pred.prob``.
+
+### Selecting predictions
+
+Now that you have the predicted probabilities, you can select your own threshold for including sentences in your data set. You can use ``src/select_preds.py`` for this.
+
+For selecting all sentences with a probability of >= 0.5 for all DSIs:
 
 ```
-python src/split_data.py --input_folder $fol/ -d 1000 -t 1000 -fa _clf -al -mo
+mkdir -p out
+python src/select_preds.py -p ${FILE}.clean.pred.prob -s ${FILE}.clean -o out/ -min 0.5
 ```
 
-Now we combine the classification splits in single files and shuffle them:
+The ``out/`` folder now contains the files per DSI, .txt for just the texts and .info for tab-separated file with all info as well.
+
+If we are only interested in e-health and e-justice, we can do this:
 
 ```
-mkdir ${fol}/all/
-for type in train dev test; do cat ${fol}/*/en/${type}_clf*dedup > ${fol}/all/${type}.clf ; done
-for type in train dev test; do shuf ${fol}/all/${type}.clf > ${fol}/all/${type}.clf.shuf ; done
+python src/select_preds.py -p ${FILE}.clean.pred.prob -s ${FILE}.clean -o out/ -min 0.5 -d e-health e-justice
 ```
 
-## DSI classification
-
-I assume you created the data splits for DSI classification. To run a basic classifier, run the following:
+If you just want to get a sense of how many docs you would get for each DSI, you can print a stats table like this:
 
 ```
-python src/basic_classifiers.py --input_file ${fol}/all/train.clf.shuf --test_file ${fol}/all/dev.clf.shuf
+python src/select_preds.py -p ${FILE}.clean.pred.prob
 ```
 
-This train a LinearSVM with unigrams and bigrams, with each feature at least occurring 5 times.
+## Training your own finetuned LM
 
-Note that there are a couple of important command line options to set:
+For training your own model you have to specify configuration files. They work together with the ``configs/default.sh file``, containing all default settings. In your own configuration file, you can override certain settings by simply including them there.
 
-```
--tf, --tfidf		  Use the TF-IDF vectorizer instead of CountVectorizer
--a  ,--algorithm      Use "nb" for Naive Bayes and "svm" for LinearSVM
--cv, --cross_validate Specify number of folds for cross-validation instead of dev/test prediction
--f, --features        Print best features per class (only works for svm)
--d, --down_sample	  Downsample all non-other classes to max this amount
--l, --limit_train     Limit training set to this amount of instances (if applicable after downsampling)
--cm, --confusion	  Save plot of confusion matrix here, if not added do not plot
--ovr, --one_vs_rest   Do one vs rest classification instead of one vs one (default)
-```
-
-There are more options, you can check them out by adding -h.
-
-It's also possible to fine-tune a pretrained language model. You should do this on a GPU. It can take quite a long time, so you potentially might want to use -l or -d here.
+For example, check out ``configs/en_test.sh``. This trains a bert-base model on the English data, and evaluates on the English dev set. Since it's just a test, we specify that we downsample each category to 200 instances, and only train for 1 epoch. You can run it like this:
 
 ```
-python src/lm_classifier.py --train_file ${fol}/all/train.clf.shuf --dev_file ${fol}/all/dev.clf.shuf -l 10000
+mkdir -p exps
+./src/train_lm.sh configs/en_test.sh
 ```
 
-This trains a model with bert-base-uncased (default), but the LM-string can be specified with -lm (as long as it's in AutoModelForSequenceClassification in the transformers library. You can use similar arguments as above for down-sampling and limiting the training set.
+You can find all experimental files in ``exps/en_test/``, including log files, output files, the trained models and evaluation files.
 
-## Training and evaluating LMs
+For Spanish and Dutch, an example is added for doing zero-shot classification with a multi-lingual LM: ``configs/ml_test.sh``.
 
-Install [KenLM](https://github.com/kpu/kenlm/) and its dependencies. I assume it's in the following subfolder of this repo:
-
-```
-cd tools/kenlm/build
-```
-
-Train a LM, with trigrams:
+First, we create a dev set that is a combination of both the Spanish and Dutch sets:
 
 ```
-./bin/lmplz -o 3 -S 100G -T /tmp < ../../../data/dsi_clean/cybersecurity/en/sentences.clean > ../../../data/dsi_clean/cybersecurity/en/sentences.arpa
+mkdir -p v1/es-nl/
+cat v1/es/dev v1/nl/dev > v1/es-nl/dev
+shuf v1/es-nl/dev > v1/es-nl/dev.shuf
 ```
 
-Make the model a binary:
+Then we simply train the model with the configuration file again, and evaluate on both the Spanish and Dutch dev sets individually:
 
 ```
-./bin/build_binary ../../../data/dsi_clean/cybersecurity/en/sentences.arpa ../../../data/dsi_clean/cybersecurity/en/sentences.binary
+./src/train_lm.sh configs/ml_test.sh
 ```
 
-Apply on (same) data to get perplexities:
+If you want to train the exact same models we did, use the config files ``configs/en_best.sh`` or ``configs/ml_best.sh``. You will have to do this on GPU and it will take 2 to 3 days.
+
+Our train script automatically evaluates on the specified dev/test sets, but you can also run this separately, and plot a confusion matrix:
 
 ```
-./bin/query ../../../data/dsi_clean/cybersecurity/en/sentences.binary < ../../../data/dsi_clean/cybersecurity/en/sentences.clean
+python src/eval.py -g $GOLD_FILE -p $PRED_FILE -c cm.png
 ```
 
-To make things easier we can run everything at once, including evaluation on all other DSIs:
+If you want to evaluate on Spanish or Dutch, you'd likely want to fix how the eval script calculates the macro-average, as not all categories are present in the dev/test sets. Save the classification report first, and run this:
 
 ```
-./src/run_kenlm.sh exp/exp_name/
+python src/fix_clf_report.py -i clf.txt
 ```
 
-The given folder is created and contains all the important experimental files (check data/ log/ and eval/).
+## Baseline models
 
-Print all the perplexities in a nice table (note run_kenlm.sh already does this):
+You can also run a basic classifier by running the following (downsample to speed up):
 
 ```
-python src/perplexity_table.py --input_folder exp/exp_name/data/
+python src/basic_classifiers.py -i v1/en/train -t v1/en/dev -tf -d 3000
+```
+
+This train a LinearSVM with unigrams and bigrams using a af TF-IDF vectorizer.
+
+Note that there are a couple of important command line options to set, you can check them out by adding -h.
+
+For example, if you want to see the best features:
+
+```
+python src/basic_classifiers.py -i v1/en/train -t v1/en/dev -tf -d 3000 --features
 ```

@@ -46,32 +46,35 @@ def split_data(input_folder, d_size, t_size, lang, file_ext, do_shuffle, add_lab
         orig = cur_fol + file_name + file_ext
         if os.path.isfile(orig):
             lines = [x.strip() for x in open(orig, 'r')]
-            # Check if we found enough line so that training set is at least 3x dev + test
-            if len(lines) > 3 * (d_size + t_size):
-                # Shuffle original file if we want
-                if do_shuffle:
-                    shuffle(lines)
-                # Check if we want to add the label to the sentence
-                # This is easier for the classification task, where we need to keep this info
-                if add_label:
-                    lines = [x + '\t' + dsi for x in lines]
 
+            # Shuffle original file if we want
+            if do_shuffle:
+                shuffle(lines)
+            # Check if we want to add the label to the sentence
+            # This is easier for the classification task, where we need to keep this info
+            if add_label:
+                lines = [x + '\t' + dsi for x in lines]
+
+            # Check if we found enough line so that we can at least split off dev and test
+            if len(lines) > 2 * (d_size):
                 # Dev/test sizes are different for category "other" (maybe)
                 dev_size = (len(dsis) - 1) * d_size if more_other and dsi == "other" else d_size
                 test_size = (len(dsis) - 1) * t_size if more_other and dsi == "other" else t_size
-
-                # Create splits
-                train = lines[:len(lines) - dev_size - test_size]
-                dev = lines[len(train): len(train) + dev_size]
-                test = lines[len(train) + dev_size:]
-                # Write to file
-                write_to_file(train, cur_fol + train_name + file_ext)
-                write_to_file(dev, cur_fol + dev_name + file_ext)
-                write_to_file(test, cur_fol + test_name + file_ext)
             else:
-                print ("Skipping {0}, length of {1} too small".format(orig, len(lines)))
+                # If not, just split in half dev and half test
+                dev_size = int(len(lines) / 2)
+                test_size = len(lines) - dev_size
+            # Create splits
+            train = lines[:len(lines) - dev_size - test_size]
+            dev = lines[len(train): len(train) + dev_size]
+            test = lines[len(train) + dev_size:]
+            # Write to file
+            if train:
+                write_to_file(train, cur_fol + train_name + file_ext)
+            write_to_file(dev, cur_fol + dev_name + file_ext)
+            write_to_file(test, cur_fol + test_name + file_ext)
         else:
-            print ("Skipping {0}, file does not exist".format(orig))
+            print (f"Skipping {orig}, file does not exist")
 
 
 if __name__ == '__main__':

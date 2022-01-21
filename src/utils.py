@@ -10,11 +10,14 @@ from spacy.lang.es import Spanish
 from spacy.lang.nl import Dutch
 
 
-def write_to_file(lst, out_file):
+def write_to_file(lst, out_file, do_strip=True):
     '''Write list to file'''
     with open(out_file, "w") as out_f:
         for line in lst:
-            out_f.write(line.strip() + '\n')
+            if do_strip:
+                out_f.write(line.strip() + '\n')
+            else:
+                out_f.write(line + '\n')    
     out_f.close()
 
 
@@ -91,14 +94,14 @@ def plot_confusion_matrix(cm,
 
     """
     #accuracy = np.trace(cm) / np.sum(cm).astype('float')
-
+    plt.rcParams.update({'font.size': 12.5})
     if cmap is None:
-        cmap = plt.get_cmap('Blues')
+        cmap = plt.get_cmap('Purples')
 
     plt.figure(figsize=(8, 6))
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
+    plt.imshow(cm, interpolation='nearest', cmap=cmap, vmax=300)
+    #plt.title(title)
+    #plt.colorbar()
 
     if target_names is not None:
         tick_marks = np.arange(len(target_names))
@@ -109,19 +112,20 @@ def plot_confusion_matrix(cm,
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
 
-    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    #thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    thresh = 275
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         if normalize:
             plt.text(j, i, "{:0.4f}".format(cm[i, j]),
-                     horizontalalignment="center",
+                     horizontalalignment="center", verticalalignment="center",
                      color="white" if cm[i, j] > thresh else "black")
         else:
             plt.text(j, i, "{:,}".format(cm[i, j]),
-                     horizontalalignment="center",
+                     horizontalalignment="center", verticalalignment="center",
                      color="white" if cm[i, j] > thresh else "black")
 
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    plt.ylabel('True label', size=16)
+    plt.xlabel('Predicted label', size=16)
     plt.savefig(save_to, bbox_inches = "tight")
