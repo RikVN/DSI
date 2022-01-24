@@ -85,6 +85,11 @@ def select_model(mod, train_log):
     # No checkpoints, just work with this model
     if not subfolders:
         return mod
+    elif len(subfolders) == 1:
+        # Just return the one model we found
+        return mod + "/" + subfolders[0] + "/"
+    elif len(subfolders) > 2:
+        raise ValueError("If you do not specify an actual single model, we can only work with a folder of two checkpoints")
     # Sort checkpoints from low to high
     fol_nums = [[fol, int(fol.split("-")[-1])] for fol in subfolders]
     sort = sorted(fol_nums, key=lambda x: x[1], reverse=False)
