@@ -42,7 +42,7 @@ for test_file in $files_to_parse; do
 done
 
 # Backup for reproducibility: the config and default files, just to be sure
-cp src/default.sh ${out_fol}/bkp/
+cp configs/default.sh ${out_fol}/bkp/
 cp $1 ${out_fol}/bkp/
 
 

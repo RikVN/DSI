@@ -24,7 +24,7 @@ wget "https://www.let.rug.nl/rikvannoord/DSI/v1.zip"
 unzip v1.zip
 ```
 
-If you want to preprocess your own set of sentences (in $FILE) exactly the way did, do the following:
+If you want to preprocess your own set of sentences (in $FILE) exactly the way we did, do the following:
 
 ```
 ./src/preprocess.sh $FILE
@@ -126,7 +126,7 @@ Our train script automatically evaluates on the specified dev/test sets, but you
 python src/eval.py -g $GOLD_FILE -p $PRED_FILE -c cm.png
 ```
 
-If you want to evaluate on Spanish or Dutch, you'd likely want to fix how the eval script calculates the macro-average, as not all categories are present in the dev/test sets. Save the classification report first, and run this:
+If you want to evaluate on Spanish or Dutch, you'd likely want to fix how the eval script calculates the macro-average, as not all categories are present in the dev/test sets. Save the classification report first (in ``clf.txt``), and run this:
 
 ```
 python src/fix_clf_report.py -i clf.txt
