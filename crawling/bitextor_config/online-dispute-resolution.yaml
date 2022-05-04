@@ -1,0 +1,22 @@
+# BASIC VARIABLES
+permanentDir: permanent
+dataDir: permanent/data
+transientDir: transient
+tempDir: transient
+
+until: split
+profiling: true
+
+# DATA SOURCES - CRAWLING
+hostsFile: ../domains/online-dispute-resolution.txt
+
+crawler: wget
+
+# PREPROCESSING
+preprocessor: "warc2preprocess"
+ftfy: true
+boilerplateCleaning: true
+parser: "simple"
+html5lib: false
+
+langs: ["es", "en", "nl"]
